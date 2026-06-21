@@ -1,19 +1,25 @@
 #include <raylib.h>
 #include <vector>
+#include <algorithm>
+#include <queue>
+
 constexpr int rows = 40;
 constexpr int cols = 30;
 constexpr int cellSize = 20;
 constexpr int cellDividerSize = 1;
 constexpr int screenWidth = rows*cellSize;
 constexpr int screenHeight = cols*cellSize;
-
-enum Cell {
+int maxDist = 1;
+enum CellTypes {
     Empty = 0,
     Wall = 1,
     Player = 2
 };
-Vector2 PlayerGrid = {0,0};
+struct Cell {int x, y;};
+
+Cell PlayerGrid = {0,0};
 std::vector<std::vector<int>> grid(rows, std::vector<int>(cols));
+std::vector<std::vector<int>> distGrid(rows, std::vector<int>(cols));
 Color GREY = {50,50,50};
 
 void ResetGrid(){
@@ -25,6 +31,7 @@ void ResetGrid(){
     grid[PlayerGrid.x][PlayerGrid.y] = Player;
 
 }
+void BFSAlgorithm();
 
 bool MovePlayer(int mrows, int mcols){
     if((PlayerGrid.x + mrows < 0) || (PlayerGrid.x + mrows + 1 > rows) || (PlayerGrid.y + mcols < 0) || (PlayerGrid.y + mcols + 1 > cols)){
@@ -37,7 +44,48 @@ bool MovePlayer(int mrows, int mcols){
     PlayerGrid.x += mrows;
     PlayerGrid.y += mcols;
     grid[PlayerGrid.x][PlayerGrid.y] = Player;
+    BFSAlgorithm();
     return true;
+}
+
+void BFSAlgorithm(){
+    maxDist = 1;
+    for (int i = 0; i < rows; i ++){
+        for (int j = 0; j < cols; j++){
+            distGrid[i][j] = -1;
+        }
+    }
+
+    std::queue<Cell> BFSqueue;
+    int px = (int)PlayerGrid.x;
+    int py = (int)PlayerGrid.y;
+
+    distGrid[px][py] = 0;
+    BFSqueue.push({PlayerGrid.x, PlayerGrid.y});
+
+    int neighbours[4][2] = { {1,0}, {0,-1}, {-1,0}, {0,1}};
+
+    while(!BFSqueue.empty()){
+        Cell currentCell = BFSqueue.front();
+        BFSqueue.pop();
+        int currentX = currentCell.x;
+        int currentY = currentCell.y;
+
+        for (int i= 0; i < 4; i++){
+            int nextX = currentX + neighbours[i][0];
+            int nextY = currentY + neighbours[i][1];
+            if((nextX < 0 || nextX >= rows || nextY < 0 || nextY >= cols)){
+                continue;
+            }
+            if(distGrid[nextX][nextY] != -1 || grid[nextX][nextY] == Wall){
+                continue;
+            }
+            distGrid[nextX][nextY] = distGrid[currentX][currentY] + 1;
+            if(distGrid[nextX][nextY] > maxDist) maxDist = distGrid[nextX][nextY];
+            BFSqueue.push({nextX, nextY});
+        }
+    }
+
 }
 
 int main() 
@@ -56,8 +104,11 @@ int main()
             int mouseCol = GetMousePosition().y /cellSize;
             if(grid[mouseRow][mouseCol] == Wall){
                 grid[mouseRow][mouseCol] = Empty;
+                BFSAlgorithm();
             } else if (grid[mouseRow][mouseCol] == Empty){
+
                 grid[mouseRow][mouseCol] = Wall;
+                BFSAlgorithm();
             }
         } else if(IsMouseButtonDown(MOUSE_BUTTON_RIGHT)){
             int mouseRow = GetMousePosition().x /cellSize;
@@ -66,6 +117,7 @@ int main()
                 grid[PlayerGrid.x][PlayerGrid.y] = Empty;
                 PlayerGrid = {(float)mouseRow, (float)mouseCol};
                 grid[PlayerGrid.x][PlayerGrid.y] = Player;
+                BFSAlgorithm();
 
             }
         }
@@ -87,7 +139,11 @@ int main()
             for (int i = 0; i<rows; i++){
                 for (int j = 0; j<cols; j++){
                     if(grid[i][j] == Empty){
-                        DrawRectangle(i*cellSize+cellDividerSize, j*cellSize+cellDividerSize, cellSize-2*cellDividerSize, cellSize-2*cellDividerSize, BLACK);
+                        Color emptyColor = BLACK;
+                        if(distGrid[i][j] > 0){
+                            emptyColor = {(unsigned char)(distGrid[i][j]*255.0f/maxDist), 0, 0};
+                        }
+                        DrawRectangle(i*cellSize+cellDividerSize, j*cellSize+cellDividerSize, cellSize-2*cellDividerSize, cellSize-2*cellDividerSize, emptyColor);
                     } else if (grid[i][j] == Wall){
                         DrawRectangle(i*cellSize+cellDividerSize, j*cellSize+cellDividerSize, cellSize-2*cellDividerSize, cellSize-2*cellDividerSize, BLUE);
                     } else if (grid[i][j] == Player){
