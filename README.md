@@ -1,5 +1,5 @@
 
-Breadth First Search (BFS) Algorithm Grid Visualiser in C++ using Raylib. 
+Breadth First Search (BFS) Algorithm Grid Visualizer in C++ using Raylib. 
 
 Cell Colors:
 White - Player
