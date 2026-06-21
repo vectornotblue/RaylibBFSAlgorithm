@@ -5,7 +5,7 @@
 
 constexpr int rows = 40;
 constexpr int cols = 30;
-constexpr int cellSize = 20;
+constexpr int cellSize = 30;
 constexpr int cellDividerSize = 1;
 constexpr int screenWidth = rows*cellSize;
 constexpr int screenHeight = cols*cellSize;
@@ -113,9 +113,13 @@ int main()
         } else if(IsMouseButtonDown(MOUSE_BUTTON_RIGHT)){
             int mouseRow = GetMousePosition().x /cellSize;
             int mouseCol = GetMousePosition().y /cellSize;
+            if(mouseCol>=cols) mouseCol = cols-1;
+            if(mouseRow>=rows) mouseRow = rows-1;
+            if(mouseCol<0) mouseCol = 0;
+            if(mouseRow < 0) mouseRow = 0;
             if(grid[mouseRow][mouseCol] == Empty){
                 grid[PlayerGrid.x][PlayerGrid.y] = Empty;
-                PlayerGrid = {(float)mouseRow, (float)mouseCol};
+                PlayerGrid = {mouseRow, mouseCol};
                 grid[PlayerGrid.x][PlayerGrid.y] = Player;
                 BFSAlgorithm();
 
@@ -139,11 +143,18 @@ int main()
             for (int i = 0; i<rows; i++){
                 for (int j = 0; j<cols; j++){
                     if(grid[i][j] == Empty){
+                        
                         Color emptyColor = BLACK;
+                        
                         if(distGrid[i][j] > 0){
-                            emptyColor = {(unsigned char)(distGrid[i][j]*255.0f/maxDist), 0, 0};
+                            float r = distGrid[i][j] / 30.0f;
+                            if(r<0.0f) r = 0.0f;
+                            if(r > 1.0f) r = 1.0f;
+                            r = 255* (1-r);
+                            emptyColor = {(unsigned char)r, 0, 0,255};
                         }
                         DrawRectangle(i*cellSize+cellDividerSize, j*cellSize+cellDividerSize, cellSize-2*cellDividerSize, cellSize-2*cellDividerSize, emptyColor);
+                        DrawText(TextFormat("%d", distGrid[i][j]), i * cellSize, j* cellSize, 15, WHITE);
                     } else if (grid[i][j] == Wall){
                         DrawRectangle(i*cellSize+cellDividerSize, j*cellSize+cellDividerSize, cellSize-2*cellDividerSize, cellSize-2*cellDividerSize, BLUE);
                     } else if (grid[i][j] == Player){
