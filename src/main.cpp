@@ -30,6 +30,9 @@ bool MovePlayer(int mrows, int mcols){
     if((PlayerGrid.x + mrows < 0) || (PlayerGrid.x + mrows + 1 > rows) || (PlayerGrid.y + mcols < 0) || (PlayerGrid.y + mcols + 1 > cols)){
         return false;
     }
+    if(grid[PlayerGrid.x+mrows][PlayerGrid.y+mcols] != Empty) {
+        return false;
+    }
     grid[PlayerGrid.x][PlayerGrid.y] = Empty;
     PlayerGrid.x += mrows;
     PlayerGrid.y += mcols;
@@ -56,6 +59,15 @@ int main()
             } else if (grid[mouseRow][mouseCol] == Empty){
                 grid[mouseRow][mouseCol] = Wall;
             }
+        } else if(IsMouseButtonDown(MOUSE_BUTTON_RIGHT)){
+            int mouseRow = GetMousePosition().x /cellSize;
+            int mouseCol = GetMousePosition().y /cellSize;
+            if(grid[mouseRow][mouseCol] == Empty){
+                grid[PlayerGrid.x][PlayerGrid.y] = Empty;
+                PlayerGrid = {(float)mouseRow, (float)mouseCol};
+                grid[PlayerGrid.x][PlayerGrid.y] = Player;
+
+            }
         }
         if(IsKeyPressed(KEY_LEFT)||IsKeyPressed(KEY_A)){
             MovePlayer(-1,0);
@@ -79,7 +91,7 @@ int main()
                     } else if (grid[i][j] == Wall){
                         DrawRectangle(i*cellSize+cellDividerSize, j*cellSize+cellDividerSize, cellSize-2*cellDividerSize, cellSize-2*cellDividerSize, BLUE);
                     } else if (grid[i][j] == Player){
-                        DrawRectangle(i*cellSize+cellDividerSize, j*cellSize+cellDividerSize, cellSize-2*cellDividerSize, cellSize-2*cellDividerSize, ORANGE);
+                        DrawRectangle(i*cellSize+cellDividerSize, j*cellSize+cellDividerSize, cellSize-2*cellDividerSize, cellSize-2*cellDividerSize, WHITE);
                     }
                 }
             }
