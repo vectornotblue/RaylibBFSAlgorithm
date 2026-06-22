@@ -14,7 +14,8 @@ int maxDist = 1;
 enum CellTypes {
     Empty = 0,
     Wall = 1,
-    Player = 2
+    Player = 2,
+    Enemy = 3
 };
 struct Cell {int x, y;};
 
@@ -24,17 +25,19 @@ std::vector<std::vector<int>> distGrid(rows, std::vector<int>(cols));
 class Agent;
 std::vector<Agent> agents;
 Color GREY = {50,50,50};
+void BFSAlgorithm();
 
 void ResetGrid(){
+
     for (int i = 0; i<rows; i++){
         for (int j = 0; j<cols; j++){
             grid[i][j] = Empty;
         }
     }
     grid[PlayerGrid.x][PlayerGrid.y] = Player;
-
+    BFSAlgorithm();
 }
-void BFSAlgorithm();
+
 
 bool MovePlayer(int mrows, int mcols){
     if((PlayerGrid.x + mrows < 0) || (PlayerGrid.x + mrows + 1 > rows) || (PlayerGrid.y + mcols < 0) || (PlayerGrid.y + mcols + 1 > cols)){
@@ -80,7 +83,7 @@ void BFSAlgorithm(){
             if((nextX < 0 || nextX >= rows || nextY < 0 || nextY >= cols)){
                 continue;
             }
-            if(distGrid[nextX][nextY] != -1 || grid[nextX][nextY] == Wall){
+            if(distGrid[nextX][nextY] != -1 || grid[nextX][nextY] == Wall ){
                 continue;
             }
             distGrid[nextX][nextY] = distGrid[currentX][currentY] + 1;
@@ -104,7 +107,7 @@ class Agent{
                     if((nextX < 0 || nextX >= rows || nextY < 0 || nextY >= cols)){
                         continue;
                     }
-                    if(distGrid[nextX][nextY] == -1 || grid[nextX][nextY] == Wall){
+                    if(distGrid[nextX][nextY] == -1 || grid[nextX][nextY] == Wall || grid[nextX][nextY] == Enemy || grid[nextX][nextY] == Player){
                         continue;
                     }
                     if (distGrid[nextX][nextY] < distGrid[smallestX][smallestY]){
@@ -112,8 +115,10 @@ class Agent{
                         smallestY = nextY;
                     }
                 }
+                grid[pos.x][pos.y] = Empty;
                 pos.x = smallestX;
                 pos.y = smallestY;
+                grid[pos.x][pos.y] = Enemy;
             }
             void UnstuckFromWall(){
                 int neighbours[4][2] = { {1,0}, {0,-1}, {-1,0}, {0,1}};
@@ -135,6 +140,7 @@ class Agent{
             pos.y = posy;
             worldPos.x = pos.x*cellSize;
             worldPos.y = pos.y*cellSize;
+            grid[pos.x][pos.y] = Enemy;
         }
          
         void Move(float dt){
@@ -167,7 +173,7 @@ class Agent{
             DrawCircle((int)worldPos.x+ cellSize/2, (int)worldPos.y + cellSize/2, 15,YELLOW);
         }
         
-};
+};  
 
 int main() 
 {
@@ -180,6 +186,9 @@ int main()
     
     while (!WindowShouldClose())
     {
+        if(IsKeyPressed(KEY_R)){
+            ResetGrid();
+        }
         if(IsKeyPressed(KEY_SPACE)){
             int posx = (int)GetMousePosition().x /cellSize;
             int posy = (int)GetMousePosition().y / cellSize;
@@ -187,18 +196,30 @@ int main()
                 agents.emplace_back(posx, posy);
             }
         }
+        int mouseDownChoice;
         if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
             int mouseRow = GetMousePosition().x /cellSize;
             int mouseCol = GetMousePosition().y /cellSize;
             if(grid[mouseRow][mouseCol] == Wall){
                 grid[mouseRow][mouseCol] = Empty;
-                BFSAlgorithm();
-            } else if (grid[mouseRow][mouseCol] == Empty){
-
+                mouseDownChoice = grid[mouseRow][mouseCol];
+            } else if(grid[mouseRow][mouseCol] == Empty){
                 grid[mouseRow][mouseCol] = Wall;
+                mouseDownChoice = grid[mouseRow][mouseCol];
+            }
+            
+            
+        }
+        if(IsMouseButtonDown(MOUSE_BUTTON_LEFT)){
+            int mouseRow = GetMousePosition().x /cellSize;
+            int mouseCol = GetMousePosition().y /cellSize;
+            if(grid[mouseRow][mouseCol] == Wall || grid[mouseRow][mouseCol] == Empty){
+                grid[mouseRow][mouseCol] = mouseDownChoice;
                 BFSAlgorithm();
             }
-        } else if(IsMouseButtonDown(MOUSE_BUTTON_RIGHT)){
+        }
+        
+        if(IsMouseButtonDown(MOUSE_BUTTON_RIGHT)){
             int mouseRow = GetMousePosition().x /cellSize;
             int mouseCol = GetMousePosition().y /cellSize;
             if(mouseCol>=cols) mouseCol = cols-1;
@@ -234,7 +255,7 @@ int main()
             ClearBackground(GREY);
             for (int i = 0; i<rows; i++){
                 for (int j = 0; j<cols; j++){
-                    if(grid[i][j] == Empty){
+                    if(grid[i][j] == Empty || grid[i][j] == Enemy){
                         
                         Color emptyColor = BLACK;
                         
