@@ -2,6 +2,7 @@
 #include <vector>
 #include <algorithm>
 #include <queue>
+#include <cmath>
 
 constexpr int rows = 40;
 constexpr int cols = 30;
@@ -20,6 +21,8 @@ struct Cell {int x, y;};
 Cell PlayerGrid = {0,0};
 std::vector<std::vector<int>> grid(rows, std::vector<int>(cols));
 std::vector<std::vector<int>> distGrid(rows, std::vector<int>(cols));
+class Agent;
+std::vector<Agent> agents;
 Color GREY = {50,50,50};
 
 void ResetGrid(){
@@ -88,6 +91,84 @@ void BFSAlgorithm(){
 
 }
 
+class Agent{
+    private: 
+            float speed = 100.0f;
+            void FindNextPos(){
+                int neighbours[4][2] = { {1,0}, {0,-1}, {-1,0}, {0,1}};
+                int smallestX = pos.x;
+                int smallestY = pos.y;
+                for (int i= 0; i < 4; i++){
+                    int nextX = pos.x + neighbours[i][0];
+                    int nextY = pos.y + neighbours[i][1];
+                    if((nextX < 0 || nextX >= rows || nextY < 0 || nextY >= cols)){
+                        continue;
+                    }
+                    if(distGrid[nextX][nextY] == -1 || grid[nextX][nextY] == Wall){
+                        continue;
+                    }
+                    if (distGrid[nextX][nextY] < distGrid[smallestX][smallestY]){
+                        smallestX = nextX;
+                        smallestY = nextY;
+                    }
+                }
+                pos.x = smallestX;
+                pos.y = smallestY;
+            }
+            void UnstuckFromWall(){
+                int neighbours[4][2] = { {1,0}, {0,-1}, {-1,0}, {0,1}};
+                for(int i = 0; i < 4; i++){
+                    int nextX = pos.x + neighbours[i][0];
+                    int nextY = pos.y + neighbours[i][1];
+                    if(grid[nextX][nextY] ==Empty){
+                        pos.x = nextX;
+                        pos.y = nextY;
+                        break;
+                    }
+                }
+            }
+    public:
+        Vector2 worldPos;
+        Cell pos;
+        Agent(int posx, int posy){
+            pos.x = posx;
+            pos.y = posy;
+            worldPos.x = pos.x*cellSize;
+            worldPos.y = pos.y*cellSize;
+        }
+         
+        void Move(float dt){
+            if(grid[pos.x][pos.y]==Wall){
+                UnstuckFromWall();
+            }
+            if(distGrid[pos.x][pos.y] <= 0){
+                return;
+            } 
+            if(abs(worldPos.x-pos.x*cellSize)<speed*dt && abs(worldPos.y-pos.y*cellSize)<speed*dt){
+                FindNextPos();
+            }
+            if(!(abs(worldPos.x-pos.x*cellSize)<speed*dt)){
+                if(worldPos.x < pos.x*cellSize){
+                    worldPos.x += speed*dt;
+                } else{
+                    worldPos.x -= speed*dt;
+                }
+            }
+            if(!(abs(worldPos.y-pos.y*cellSize)<speed*dt)){
+                if(worldPos.y < pos.y*cellSize){
+                    worldPos.y += speed*dt;
+                }else{
+                    worldPos.y -= speed*dt;
+
+                }
+            }
+        }
+        void Draw(){
+            DrawCircle((int)worldPos.x+ cellSize/2, (int)worldPos.y + cellSize/2, 15,YELLOW);
+        }
+        
+};
+
 int main() 
 {
     
@@ -99,6 +180,13 @@ int main()
     
     while (!WindowShouldClose())
     {
+        if(IsKeyPressed(KEY_SPACE)){
+            int posx = (int)GetMousePosition().x /cellSize;
+            int posy = (int)GetMousePosition().y / cellSize;
+            if(grid[posx][posy] == Empty){
+                agents.emplace_back(posx, posy);
+            }
+        }
         if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)){
             int mouseRow = GetMousePosition().x /cellSize;
             int mouseCol = GetMousePosition().y /cellSize;
@@ -137,6 +225,10 @@ int main()
         if(IsKeyPressed(KEY_DOWN)||IsKeyPressed(KEY_S)){
             MovePlayer(0,1);
         }
+        float deltaTime = GetFrameTime();
+        for(auto& agent : agents){
+            agent.Move(deltaTime);
+        }
 
         BeginDrawing();
             ClearBackground(GREY);
@@ -161,6 +253,9 @@ int main()
                         DrawRectangle(i*cellSize+cellDividerSize, j*cellSize+cellDividerSize, cellSize-2*cellDividerSize, cellSize-2*cellDividerSize, WHITE);
                     }
                 }
+            }
+            for(auto& agent : agents){
+                agent.Draw();
             }
         EndDrawing();
     }
